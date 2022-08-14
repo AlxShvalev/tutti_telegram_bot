@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 from config import configure_logging
 from constants import BASE_URL, SEARCH_URL, TELEGRAM_TOKEN
 from parser import parse_search, get_file_data
-from utils import get_response, get_download_messgae, get_keyboard
+from utils import get_response, get_download_message, get_keyboard
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -59,7 +59,7 @@ async def button_callback_handler(call: types.CallbackQuery):
         await bot.send_message(call.from_user.id, 'Слишком много запросов. '
                                                   'Попробуйте позже.')
     file_data = get_file_data(response)
-    text = get_download_messgae(file_data)
+    text = get_download_message(file_data)
     await bot.send_message(chat_id=call.from_user.id,
                            text=text,
                            parse_mode='HTML')
