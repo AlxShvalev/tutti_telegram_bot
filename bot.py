@@ -1,30 +1,13 @@
-import requests
-from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
+from aiogram import types
 from aiogram.utils import executor
 from aiogram.types import InputFile
 from io import BytesIO
 from urllib.parse import urljoin
 
-from config import configure_logging
-from constants import BASE_URL, SEARCH_URL, TELEGRAM_TOKEN
+from config import bot, configure_logging, dispatcher
+from constants import BASE_URL, SEARCH_URL
 from parser import parse_search, get_file_data
 from utils import get_download_message, get_file, get_keyboard, get_response
-
-bot = Bot(token=TELEGRAM_TOKEN)
-session = requests.Session()
-session.headers = {
-    'Connection': 'keep-alive',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Encoding': 'gzip,deflate,sdch',
-    'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4',
-    'Cache-Control': 'max-age=0',
-    'Origin': 'http://site.ru',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.0 Safari/537.36'
-}
-bot['session'] = session
-
-dispatcher = Dispatcher(bot)
 
 
 @dispatcher.message_handler(commands=['start'])
