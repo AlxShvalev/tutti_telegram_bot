@@ -15,7 +15,7 @@ session.headers = {
     'Accept-Encoding': 'gzip,deflate,sdch',
     'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4',
     'Cache-Control': 'max-age=0',
-    'Origin': 'http://site.ru',
+    'Origin': 'https://musopen.org',
     'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.0 Safari/537.36'
 }
 bot['session'] = session
