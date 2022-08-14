@@ -11,6 +11,17 @@ from parser import parse_search, get_file_data
 from utils import get_response, get_download_message, get_keyboard
 
 bot = Bot(token=TELEGRAM_TOKEN)
+session = requests.Session()
+session.headers = {
+    'Connection': 'keep-alive',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Encoding': 'gzip,deflate,sdch',
+    'Accept-Language': 'ru-RU,ru;q=0.8,en-US;q=0.6,en;q=0.4',
+    'Cache-Control': 'max-age=0',
+    'Origin': 'http://site.ru',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.0 Safari/537.36'
+}
+bot['session'] = session
 
 dispatcher = Dispatcher(bot)
 
@@ -34,7 +45,7 @@ async def process_help_command(message: types.Message):
 @dispatcher.message_handler()
 async def main_handler(msg: types.Message):
     """Основной обработчик текстовых сообщений"""
-    session = requests.Session()
+    session = bot['session']
     url = SEARCH_URL + msg.text
     response = get_response(session, url)
     if response is None:
@@ -51,9 +62,9 @@ async def main_handler(msg: types.Message):
 @dispatcher.callback_query_handler()
 async def button_callback_handler(call: types.CallbackQuery):
     """Обработчик нажатия инлайн кнопок"""
-    url = urljoin(BASE_URL, '/ru/music/', allow_fragments=True)
+    url = urljoin(BASE_URL, '/ru/music/')
     url = urljoin(url, call.data)
-    session = requests.Session()
+    session = bot['session']
     response = get_response(session, url)
     if response is None:
         await bot.send_message(call.from_user.id, 'Слишком много запросов. '
