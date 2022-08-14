@@ -6,8 +6,7 @@ from utils import find_tag, find_all_tags
 
 
 def parse_search(response: requests.Response) -> List[Dict[str, str]]:
-    """Парсит результаты поиска произведений,
-    переходит на страницу каждого произведения"""
+    """Парсит результаты поиска произведений."""
     soup = bs(response.text, features='lxml')
     table_rows = find_all_tags(soup, 'div', attrs={'class': 'flex-table-row'})
     result = []
@@ -28,9 +27,16 @@ def parse_search(response: requests.Response) -> List[Dict[str, str]]:
     return result
 
 
-def get_notes_url(response: requests.Response) -> str:
-    """Находит ссылку на файл и возвращает её."""
+def get_file_data(response: requests.Response) -> Dict[str, str]:
+    """Находит информацию по произведению и возвращает её."""
     soup = bs(response.text, features='lxml')
+    composer_span = find_tag(soup, 'span', attrs={'itemprop': 'composer'})
+    composer = find_tag(composer_span, 'span').text
+    title = find_tag(soup, 'h1').text
     a_tag = find_tag(soup, 'a', attrs={'id': 'sheetmusic-download-button'})
     link = a_tag['href']
-    return link
+    return dict(
+        composer=composer,
+        title=title,
+        link=link
+    )
