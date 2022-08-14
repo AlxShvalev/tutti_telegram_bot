@@ -9,12 +9,13 @@ from typing import Dict, List, Optional
 
 
 def get_response(session: Session, url: str) -> Response:
+    """Устанавливает соединение с переданным url.
+    В случае ошибки генерирует исключение."""
     try:
         response = session.get(url=url)
         response.encoding = 'utf-8'
         if response.status_code == HTTPStatus.TOO_MANY_REQUESTS:
-            time.sleep(5)
-            return get_response(session, url)
+            return
         return response
     except RequestException:
         logging.exception(f'Возникла ошибка при загрузке страницы {url}')
@@ -22,6 +23,7 @@ def get_response(session: Session, url: str) -> Response:
 
 
 def find_tag(soup: Tag, tag: str, attrs: Optional[Dict] = None) -> Tag:
+    """Поиск первого тега на странице"""
     searched_tag = soup.find(tag, attrs=(attrs or {}))
     if searched_tag is None:
         error_msg = f'Не найден тег {tag} {attrs}'
@@ -29,11 +31,8 @@ def find_tag(soup: Tag, tag: str, attrs: Optional[Dict] = None) -> Tag:
     return searched_tag
 
 
-def find_all_tags(
-        soup: Tag,
-        tag: str,
-        attrs: Optional[Dict] = None
-) -> list[Tag]:
+def find_all_tags(soup: Tag, tag: str, attrs: Optional[Dict] = None) -> list[Tag]:
+    """Поиск всех тегов на странице"""
     searched_tags = soup.find_all(tag, attrs=(attrs or {}))
     if searched_tags:
         return searched_tags
@@ -41,16 +40,31 @@ def find_all_tags(
     logging.error(error_msg, stack_info=True)
 
 
-def make_message(search_result: List[Dict[str, str]]) -> tuple:
+def get_keyboard(search_result: List[Dict[str, str]]) -> tuple:
+    """Подготовка клавиатуры для результатов поиска"""
     text = 'Результат поиска:\n'
     text += f'Найдено произведений: {len(search_result)}\n'
     keyboard_list = []
     for row in search_result:
+        composer = row.get('composer', 'no data')
+        title = row.get('title', 'no data')
+        link = row.get('link', 'no data')
+        link = link.strip().split('/')[-2]
         button = InlineKeyboardButton(
-                text=(row.get('composer', 'no data') + ': ' +
-                      row.get('title', 'no data')),
-                callback_data=row.get('link', 'no data')
+                text=f'{composer}: {title}',
+                callback_data=link[:64]
             )
         keyboard_list.append(button)
 
     return text, keyboard_list
+
+
+def get_download_message(file_data: dict) -> str:
+    """Подготовка сообщения для скачивания файла"""
+    composer = file_data.get('composer', '-no data-')
+    title = file_data.get('title', '-no data-')
+    link = file_data.get('link', '-no data-')
+    text = (f'<b>Композитор</b>: {composer}\n'
+            f'<b>Название</b>: {title}\n'
+            f'<b><a href="{link}">Скачать файл</a></b>\n')
+    return text
