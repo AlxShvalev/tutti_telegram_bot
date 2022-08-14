@@ -7,8 +7,8 @@ from urllib.parse import urljoin
 
 from config import configure_logging
 from constants import BASE_URL, SEARCH_URL, TELEGRAM_TOKEN
-from parser import parse_search, get_notes_url
-from utils import get_response, make_message
+from parser import parse_search, get_file_data
+from utils import get_response, get_download_messgae, get_keyboard
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
@@ -33,11 +33,15 @@ async def process_help_command(message: types.Message):
 
 @dispatcher.message_handler()
 async def main_handler(msg: types.Message):
+    """Основной обработчик текстовых сообщений"""
     session = requests.Session()
     url = SEARCH_URL + msg.text
     response = get_response(session, url)
+    if response is None:
+        await bot.send_message(msg.from_user.id, 'Слишком много запросов. '
+                                                 'Попробуйте позже.')
     search_list = parse_search(response)
-    text, keyboard = make_message(search_list)
+    text, keyboard = get_keyboard(search_list)
     inline_kb = InlineKeyboardMarkup(row_width=1)
     inline_kb.add(*keyboard)
 
@@ -46,12 +50,18 @@ async def main_handler(msg: types.Message):
 
 @dispatcher.callback_query_handler()
 async def button_callback_handler(call: types.CallbackQuery):
-    url = urljoin(BASE_URL, call.data)
+    """Обработчик нажатия инлайн кнопок"""
+    url = urljoin(BASE_URL, '/ru/music/', allow_fragments=True)
+    url = urljoin(url, call.data)
     session = requests.Session()
     response = get_response(session, url)
-    file_url = get_notes_url(response)
+    if response is None:
+        await bot.send_message(call.from_user.id, 'Слишком много запросов. '
+                                                  'Попробуйте позже.')
+    file_data = get_file_data(response)
+    text = get_download_messgae(file_data)
     await bot.send_message(chat_id=call.from_user.id,
-                           text=f'<a href="{file_url}">Скачать файл</a>\n\n',
+                           text=text,
                            parse_mode='HTML')
 
 
