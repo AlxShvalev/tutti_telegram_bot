@@ -1,7 +1,8 @@
 import logging
-import time
+import tempfile
 
-from aiogram.types import InlineKeyboardButton
+import aiogram
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from bs4.element import Tag
 from http import HTTPStatus
 from requests import RequestException, Response, Session
@@ -40,11 +41,9 @@ def find_all_tags(soup: Tag, tag: str, attrs: Optional[Dict] = None) -> list[Tag
     logging.error(error_msg, stack_info=True)
 
 
-def get_keyboard(search_result: List[Dict[str, str]]) -> tuple:
+async def get_keyboard(search_result: List[Dict[str, str]]) -> InlineKeyboardMarkup:
     """Подготовка клавиатуры для результатов поиска"""
-    text = 'Результат поиска:\n'
-    text += f'Найдено произведений: {len(search_result)}\n'
-    keyboard_list = []
+    inline_kb = InlineKeyboardMarkup(row_width=1)
     for row in search_result:
         composer = row.get('composer', 'no data')
         title = row.get('title', 'no data')
@@ -54,17 +53,25 @@ def get_keyboard(search_result: List[Dict[str, str]]) -> tuple:
                 text=f'{composer}: {title}',
                 callback_data=link[:64]
             )
-        keyboard_list.append(button)
+        inline_kb.add(button)
 
-    return text, keyboard_list
+    return inline_kb
 
 
-def get_download_message(file_data: dict) -> str:
-    """Подготовка сообщения для скачивания файла"""
+async def get_download_message(file_data: dict) -> str:
+    """Подготовка сообщения для описания файла"""
     composer = file_data.get('composer', '-no data-')
     title = file_data.get('title', '-no data-')
-    link = file_data.get('link', '-no data-')
-    text = (f'<b>Композитор</b>: {composer}\n'
-            f'<b>Название</b>: {title}\n'
-            f'<b><a href="{link}">Скачать файл</a></b>\n')
+    text = f'{composer}: {title}'
     return text
+
+
+async def get_file(url: str, bot: aiogram.Bot) -> tempfile.TemporaryFile:
+    """Скачиввет и возвращает файл"""
+    session = bot['session']
+    response = session.get(url, stream=True)
+    if response.status_code == HTTPStatus.OK:
+        tmp = tempfile.TemporaryFile()
+        tmp.write(response.content)
+        tmp.seek(0)
+        return tmp

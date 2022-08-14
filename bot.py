@@ -2,13 +2,14 @@ import requests
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
-from aiogram.types import InlineKeyboardMarkup
+from aiogram.types import InputFile
+from io import BytesIO
 from urllib.parse import urljoin
 
 from config import configure_logging
 from constants import BASE_URL, SEARCH_URL, TELEGRAM_TOKEN
 from parser import parse_search, get_file_data
-from utils import get_response, get_download_message, get_keyboard
+from utils import get_download_message, get_file, get_keyboard, get_response
 
 bot = Bot(token=TELEGRAM_TOKEN)
 session = requests.Session()
@@ -52,16 +53,16 @@ async def main_handler(msg: types.Message):
         await bot.send_message(msg.from_user.id, 'Слишком много запросов. '
                                                  'Попробуйте позже.')
     search_list = parse_search(response)
-    text, keyboard = get_keyboard(search_list)
-    inline_kb = InlineKeyboardMarkup(row_width=1)
-    inline_kb.add(*keyboard)
+    keyboard = await get_keyboard(search_list)
+    text = f'Результат поиска:\nНайдено произведений: {len(search_list)}\n'
 
-    await bot.send_message(msg.from_user.id, text, reply_markup=inline_kb)
+    await bot.send_message(msg.from_user.id, text, reply_markup=keyboard)
 
 
 @dispatcher.callback_query_handler()
 async def button_callback_handler(call: types.CallbackQuery):
-    """Обработчик нажатия инлайн кнопок"""
+    """Обработчик нажатия инлайн кнопок.
+    Отправляет файл в ответ на нажатие кнопки"""
     url = urljoin(BASE_URL, '/ru/music/')
     url = urljoin(url, call.data)
     session = bot['session']
@@ -70,10 +71,13 @@ async def button_callback_handler(call: types.CallbackQuery):
         await bot.send_message(call.from_user.id, 'Слишком много запросов. '
                                                   'Попробуйте позже.')
     file_data = get_file_data(response)
-    text = get_download_message(file_data)
-    await bot.send_message(chat_id=call.from_user.id,
-                           text=text,
-                           parse_mode='HTML')
+    filename = file_data.get('title')
+    text = await get_download_message(file_data)
+    tmp = await get_file(file_data.get('link'), bot=bot)
+    tmp_to_bytes = BytesIO(tmp.read())
+    file = InputFile(path_or_bytesio=tmp_to_bytes, filename=f'{filename}.pdf')
+    await bot.send_document(chat_id=call.from_user.id,
+                            document=file, caption=text)
 
 
 def main():
